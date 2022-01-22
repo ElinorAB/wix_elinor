@@ -5,6 +5,8 @@ import json
 import pandas as pd
 import config
 
+NUM_OF_USERS = 4500
+
 hostname = config.hostname
 dbname = config.dbname
 uname = config.uname
@@ -13,25 +15,31 @@ pwd = config.pwd
 engine = create_engine(
     f'mysql+mysqlconnector://{uname}:%s@{hostname}:3306/{dbname}' % quote(pwd))
 
+
 def create_df(num_of_users):
+    print('start - create_df')
     results = requests.get(
         f'https://randomuser.me/api/?results={num_of_users}')
     users = json.loads(results.text)
     df = pd.DataFrame()
     for user in users.get('results'):
         df = df.append(pd.json_normalize(user, sep='_'))
+    print('end - create_df')
     return df
 
 
 def create_gender_tables(df):
+    print('start - create_gender_tables')
     gender_op = ['male', 'female']
     for gender in gender_op:
         df_genders = df.loc[df['gender'] == gender]
         df_genders.to_sql(
             f"elinor_test_{gender}", engine, index=False, if_exists='replace')
+    print('end - create_gender_tables')
 
 
 def create_age_tables(df):
+    print('start - create_age_tables')
     # generate fixed bins
     bin_range = [bin for bin in range(10, 110, 10)]
     labels = bin_range[:-1]
@@ -41,6 +49,8 @@ def create_age_tables(df):
         df_ages = df.loc[df['bin'] == age_range]
         df_ages.to_sql(
             f"elinor_test_{str(age_range)[:-1]}", engine, index=False, if_exists='replace')
+    print('end - create_age_tables')
+
 
 '''
 1. SQL execution is on DB since there is no need to bring the data to pandas, 
@@ -50,7 +60,10 @@ def create_age_tables(df):
    'Error Code: 1786 Statement violates GTID consistency: CREATE TABLE ... SELECT'
 4. The best way i found to create the table was using the 'LIKE' option
 '''
+
+
 def create_top_20():
+    print('start - create_top_20')
     sqls = [(
             f"DROP TABLE IF EXISTS {dbname}.elinor_test_20 "
             ),
@@ -74,6 +87,7 @@ def create_top_20():
     with engine.connect() as con:
         for sql in sqls:
             con.execute(sql)
+    print('end - create_top_20')
 
 
 def union_dfs(query1, query2, drop_duplicates, file_name):
@@ -89,12 +103,13 @@ def union_dfs(query1, query2, drop_duplicates, file_name):
 
 def create_json(df, file_name):
     df.to_json(f"{file_name}.json",
-            orient="table",
-            index = False)
+               orient="table",
+               index=False)
+    print(f'created {file_name}.json succesfully')
 
 
 def main():
-    df = create_df(4500)
+    df = create_df(NUM_OF_USERS)
     create_gender_tables(df)
     create_age_tables(df)
     create_top_20()
