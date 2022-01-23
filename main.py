@@ -41,12 +41,11 @@ def create_gender_tables(df):
 def create_age_tables(df):
     print('start - create_age_tables')
     # generate fixed bins
-    bin_range = [bin for bin in range(10, 110, 10)]
+    bin_range = [bin for bin in range(10, 120, 10)]
     labels = bin_range[:-1]
-    # print(bin_range)
-    for age_range in bin_range:
-        df['bin'] = pd.cut(df.dob_age, bin_range, right=False, labels=labels)
-        df_ages = df.loc[df['bin'] == age_range]
+    for age_range in labels:
+        bin = pd.cut(df.dob_age, bin_range, right=False, labels=labels)
+        df_ages = df.loc[bin == age_range]
         df_ages.to_sql(
             f"elinor_test_{str(age_range)[:-1]}", engine, index=False, if_exists='replace')
     print('end - create_age_tables')
@@ -60,8 +59,6 @@ def create_age_tables(df):
    'Error Code: 1786 Statement violates GTID consistency: CREATE TABLE ... SELECT'
 4. The best way i found to create the table was using the 'LIKE' option
 '''
-
-
 def create_top_20():
     print('start - create_top_20')
     sqls = [(
